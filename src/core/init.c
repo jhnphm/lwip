@@ -60,6 +60,7 @@
 #include "lwip/nd6.h"
 #include "lwip/mld6.h"
 #include "lwip/api.h"
+#include "netif/ppp/ppp.h"
 
 /* Compile-time sanity checks for configuration errors.
  * These can be done independently of LWIP_DEBUG, without penalty.
@@ -151,6 +152,9 @@
 #if (!LWIP_NETCONN && LWIP_SOCKET)
   #error "If you want to use Socket API, you have to define LWIP_NETCONN=1 in your lwipopts.h"
 #endif
+#if (LWIP_PPP_API && (NO_SYS==1))
+  #error "If you want to use PPP API, you have to define NO_SYS=0 in your lwipopts.h"
+#endif
 #if (((!LWIP_DHCP) || (!LWIP_AUTOIP)) && LWIP_DHCP_AUTOIP_COOP)
   #error "If you want to use DHCP/AUTOIP cooperation mode, you have to define LWIP_DHCP=1 and LWIP_AUTOIP=1 in your lwipopts.h"
 #endif
@@ -209,9 +213,6 @@
 #endif /* LWIP_NETCONN && LWIP_TCP */ 
 #if LWIP_SOCKET
 /* Check that the SO_* socket options and SOF_* lwIP-internal flags match */
-#if SO_ACCEPTCONN != SOF_ACCEPTCONN
-  #error "SO_ACCEPTCONN != SOF_ACCEPTCONN"
-#endif
 #if SO_REUSEADDR != SOF_REUSEADDR
   #error "WARNING: SO_REUSEADDR != SOF_REUSEADDR"
 #endif
@@ -220,9 +221,6 @@
 #endif
 #if SO_BROADCAST != SOF_BROADCAST
   #error "WARNING: SO_BROADCAST != SOF_BROADCAST"
-#endif
-#if SO_LINGER != SOF_LINGER
-  #error "WARNING: SO_LINGER != SOF_LINGER"
 #endif
 #endif /* LWIP_SOCKET */
 
@@ -312,9 +310,6 @@ lwip_init(void)
   memp_init();
   pbuf_init();
   netif_init();
-#if LWIP_SOCKET
-  lwip_socket_init();
-#endif /* LWIP_SOCKET */
   ip_init();
 #if LWIP_ARP
   etharp_init();
@@ -347,6 +342,9 @@ lwip_init(void)
   mld6_init();
 #endif /* LWIP_IPV6_MLD */
 #endif /* LWIP_IPV6 */
+#if PPP_SUPPORT
+  ppp_init();
+#endif
 
 #if LWIP_TIMERS
   sys_timeouts_init();

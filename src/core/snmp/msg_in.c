@@ -110,6 +110,10 @@ snmp_error_response(struct snmp_msg_pstat *msg_ps, u8_t error)
   struct snmp_varbind *vbi = msg_ps->invb.head;
   struct snmp_varbind *vbo = msg_ps->outvb.head;
   for (v=0; v<msg_ps->vb_idx; v++) {
+    if (vbi->ident != NULL) {
+      /* free previously allocated value before overwriting the pointer */
+      memp_free(MEMP_SNMP_VALUE, vbi->ident);
+    }
     vbi->ident_len = vbo->ident_len;
     vbo->ident_len = 0;
     vbi->ident = vbo->ident;
@@ -156,7 +160,7 @@ snmp_ok_response(struct snmp_msg_pstat *msg_ps)
  * Service an internal or external event for SNMP GET.
  *
  * @param request_id identifies requests from 0 to (SNMP_CONCURRENT_REQUESTS-1)
- * @param msg_ps points to the assosicated message process state
+ * @param msg_ps points to the associated message process state
  */
 static void
 snmp_msg_get_event(u8_t request_id, struct snmp_msg_pstat *msg_ps)
@@ -205,7 +209,7 @@ snmp_msg_get_event(u8_t request_id, struct snmp_msg_pstat *msg_ps)
       /* move name from invb to outvb */
       vb->ident = msg_ps->vb_ptr->ident;
       vb->ident_len = msg_ps->vb_ptr->ident_len;
-      /* ensure this memory is refereced once only */
+      /* ensure this memory is referenced once only */
       msg_ps->vb_ptr->ident = NULL;
       msg_ps->vb_ptr->ident_len = 0;
 
@@ -318,7 +322,7 @@ snmp_msg_get_event(u8_t request_id, struct snmp_msg_pstat *msg_ps)
               /* move name from invb to outvb */
               vb->ident = msg_ps->vb_ptr->ident;
               vb->ident_len = msg_ps->vb_ptr->ident_len;
-              /* ensure this memory is refereced once only */
+              /* ensure this memory is referenced once only */
               msg_ps->vb_ptr->ident = NULL;
               msg_ps->vb_ptr->ident_len = 0;
 
@@ -387,7 +391,7 @@ snmp_msg_get_event(u8_t request_id, struct snmp_msg_pstat *msg_ps)
  * Service an internal or external event for SNMP GETNEXT.
  *
  * @param request_id identifies requests from 0 to (SNMP_CONCURRENT_REQUESTS-1)
- * @param msg_ps points to the assosicated message process state
+ * @param msg_ps points to the associated message process state
  */
 static void
 snmp_msg_getnext_event(u8_t request_id, struct snmp_msg_pstat *msg_ps)
@@ -532,7 +536,7 @@ snmp_msg_getnext_event(u8_t request_id, struct snmp_msg_pstat *msg_ps)
  * Service an internal or external event for SNMP SET.
  *
  * @param request_id identifies requests from 0 to (SNMP_CONCURRENT_REQUESTS-1)
- * @param msg_ps points to the assosicated message process state
+ * @param msg_ps points to the associated message process state
  */
 static void
 snmp_msg_set_event(u8_t request_id, struct snmp_msg_pstat *msg_ps)
@@ -1086,7 +1090,7 @@ snmp_pdu_header_check(struct pbuf *p, u16_t ofs, u16_t pdu_len, u16_t *ofs_ret, 
       snmp_inc_snmpingenerrs();
       break;
     default:
-      LWIP_DEBUGF(SNMP_MSG_DEBUG, ("snmp_pdu_header_check(): unknown error_status: %d\n", m_stat->error_status));
+      LWIP_DEBUGF(SNMP_MSG_DEBUG, ("snmp_pdu_header_check(): unknown error_status: %d\n", (int)m_stat->error_status));
       break;
   }
   ofs += (1 + len_octets + len);

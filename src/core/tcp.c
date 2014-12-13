@@ -382,14 +382,19 @@ tcp_abandon(struct tcp_pcb *pcb, int reset)
     errf = pcb->errf;
 #endif /* LWIP_CALLBACK_API */
     errf_arg = pcb->callback_arg;
-    TCP_PCB_REMOVE_ACTIVE(pcb);
+    if ((pcb->state == CLOSED) && (pcb->local_port != 0)) {
+      /* bound, not yet opened */
+      TCP_RMV(&tcp_bound_pcbs, pcb);
+    } else {
+      TCP_PCB_REMOVE_ACTIVE(pcb);
+    }
     if (pcb->unacked != NULL) {
       tcp_segs_free(pcb->unacked);
     }
     if (pcb->unsent != NULL) {
       tcp_segs_free(pcb->unsent);
     }
-#if TCP_QUEUE_OOSEQ    
+#if TCP_QUEUE_OOSEQ
     if (pcb->ooseq != NULL) {
       tcp_segs_free(pcb->ooseq);
     }
@@ -420,7 +425,7 @@ tcp_abort(struct tcp_pcb *pcb)
 }
 
 /**
- * Binds the connection to a local portnumber and IP address. If the
+ * Binds the connection to a local port number and IP address. If the
  * IP address is not given (i.e., ipaddr == NULL), the IP address of
  * the outgoing network interface is used instead.
  *
@@ -558,7 +563,6 @@ tcp_listen_with_backlog(struct tcp_pcb *pcb, u8_t backlog)
   lpcb->state = LISTEN;
   lpcb->prio = pcb->prio;
   lpcb->so_options = pcb->so_options;
-  ip_set_option(lpcb, SOF_ACCEPTCONN);
   lpcb->ttl = pcb->ttl;
   lpcb->tos = pcb->tos;
 #if LWIP_IPV6
@@ -718,7 +722,8 @@ again:
  * @param pcb the tcp_pcb used to establish the connection
  * @param ipaddr the remote ip address to connect to
  * @param port the remote tcp port to connect to
- * @param connected callback function to call when connected (or on error)
+ * @param connected callback function to call when connected (on error,
+                    the err calback will be called)
  * @return ERR_VAL if invalid arguments are given
  *         ERR_OK if connect request has been sent
  *         other err_t values if connect request couldn't be sent
@@ -1503,11 +1508,11 @@ tcp_sent(struct tcp_pcb *pcb, tcp_sent_fn sent)
 
 /**
  * Used to specify the function that should be called when a fatal error
- * has occured on the connection.
+ * has occurred on the connection.
  *
  * @param pcb tcp_pcb to set the err callback
  * @param err callback function to call for this pcb when a fatal error
- *        has occured on the connection
+ *        has occurred on the connection
  */ 
 void
 tcp_err(struct tcp_pcb *pcb, tcp_err_fn err)
@@ -1633,7 +1638,7 @@ tcp_pcb_remove(struct tcp_pcb **pcblist, struct tcp_pcb *pcb)
   TCP_RMV(pcblist, pcb);
 
   tcp_pcb_purge(pcb);
-  
+
   /* if there is an outstanding delayed ACKs, send it */
   if (pcb->state != TIME_WAIT &&
      pcb->state != LISTEN &&
@@ -1651,6 +1656,8 @@ tcp_pcb_remove(struct tcp_pcb **pcblist, struct tcp_pcb *pcb)
   }
 
   pcb->state = CLOSED;
+  /* reset the local port to prevent the pcb from being 'bound' */
+  pcb->local_port = 0;
 
   LWIP_ASSERT("tcp_pcb_remove: tcp_pcbs_sane()", tcp_pcbs_sane());
 }
@@ -1671,8 +1678,8 @@ tcp_next_iss(void)
 
 #if TCP_CALCULATE_EFF_SEND_MSS
 /**
- * Calcluates the effective send mss that can be used for a specific IP address
- * by using ip_route to determin the netif used to send to the address and
+ * Calculates the effective send mss that can be used for a specific IP address
+ * by using ip_route to determine the netif used to send to the address and
  * calculating the minimum of TCP_MSS and that netif's mtu (if set).
  */
 u16_t
@@ -1703,7 +1710,7 @@ tcp_eff_send_mss_impl(u16_t sendmss, ipX_addr_t *dest
   if (mtu != 0) {
     mss_s = mtu - IP_HLEN - TCP_HLEN;
 #if LWIP_IPV6
-    /* for IPv6, substract the difference in header size */
+    /* for IPv6, subtract the difference in header size */
     mss_s -= (IP6_HLEN - IP_HLEN);
 #endif /* LWIP_IPV6 */
     /* RFC 1122, chap 4.2.2.6:

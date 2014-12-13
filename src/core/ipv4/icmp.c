@@ -119,7 +119,7 @@ icmp_input(struct pbuf *p, struct netif *inp)
         accepted = 0;
       }
 #endif /* LWIP_BROADCAST_PING */
-      /* broadcast or multicast destination address not acceptd? */
+      /* broadcast or multicast destination address not accepted? */
       if (!accepted) {
         LWIP_DEBUGF(ICMP_DEBUG, ("icmp_input: Not echoing to multicast or broadcast pings\n"));
         ICMP_STATS_INC(icmp.err);
@@ -148,28 +148,25 @@ icmp_input(struct pbuf *p, struct netif *inp)
        * allocate a new one and copy p into it
        */
       struct pbuf *r;
-      /* switch p->payload to ip header */
-      if (pbuf_header(p, hlen)) {
-        LWIP_ASSERT("icmp_input: moving p->payload to ip header failed\n", 0);
-        goto memerr;
-      }
       /* allocate new packet buffer with space for link headers */
-      r = pbuf_alloc(PBUF_LINK, p->tot_len, PBUF_RAM);
+      r = pbuf_alloc(PBUF_LINK, p->tot_len + hlen, PBUF_RAM);
       if (r == NULL) {
         LWIP_DEBUGF(ICMP_DEBUG, ("icmp_input: allocating new pbuf failed\n"));
         goto memerr;
       }
       LWIP_ASSERT("check that first pbuf can hold struct the ICMP header",
                   (r->len >= hlen + sizeof(struct icmp_echo_hdr)));
-      /* copy the whole packet including ip header */
-      if (pbuf_copy(r, p) != ERR_OK) {
-        LWIP_ASSERT("icmp_input: copying to new pbuf failed\n", 0);
-        goto memerr;
-      }
+      /* copy the ip header */
+      MEMCPY(r->payload, iphdr, hlen);
       iphdr = (struct ip_hdr *)r->payload;
       /* switch r->payload back to icmp header */
       if (pbuf_header(r, -hlen)) {
-        LWIP_ASSERT("icmp_input: restoring original p->payload failed\n", 0);
+        LWIP_ASSERT("icmp_input: moving r->payload to icmp header failed\n", 0);
+        goto memerr;
+      }
+      /* copy the rest of the packet without ip header */
+      if (pbuf_copy(r, p) != ERR_OK) {
+        LWIP_ASSERT("icmp_input: copying to new pbuf failed\n", 0);
         goto memerr;
       }
       /* free the original p */
@@ -219,7 +216,7 @@ icmp_input(struct pbuf *p, struct netif *inp)
       LWIP_ASSERT("Can't move over header in packet", 0);
     } else {
       err_t ret;
-      /* send an ICMP packet, src addr is the dest addr of the curren packet */
+      /* send an ICMP packet, src addr is the dest addr of the current packet */
       ret = ip_output_if(p, ip_current_dest_addr(), IP_HDRINCL,
                    ICMP_TTL, 0, IP_PROTO_ICMP, inp);
       if (ret != ERR_OK) {

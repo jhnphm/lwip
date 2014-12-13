@@ -292,7 +292,7 @@ ip6_reass(struct pbuf *p)
       ipr = (struct ip6_reassdata *)memp_malloc(MEMP_IP6_REASSDATA);
       if (ipr != NULL) {
         /* re-search ipr_prev since it might have been removed */
-        for (ipr_prev = reassdatagrams; ipr_prev != NULL; ipr = ipr->next) {
+        for (ipr_prev = reassdatagrams; ipr_prev != NULL; ipr_prev = ipr_prev->next) {
           if (ipr_prev->next == ipr) {
             break;
           }
@@ -331,7 +331,7 @@ ip6_reass(struct pbuf *p)
     ip6_reass_remove_oldest_datagram(ipr, clen);
     if ((ip6_reass_pbufcount + clen) <= IP_REASS_MAX_PBUFS) {
       /* re-search ipr_prev since it might have been removed */
-      for (ipr_prev = reassdatagrams; ipr_prev != NULL; ipr = ipr->next) {
+      for (ipr_prev = reassdatagrams; ipr_prev != NULL; ipr_prev = ipr_prev->next) {
         if (ipr_prev->next == ipr) {
           break;
         }
@@ -482,7 +482,7 @@ ip6_reass(struct pbuf *p)
         /* Save next helper struct (will be hidden in next step). */
         iprh_tmp = (struct ip6_reass_helper*) iprh->next_pbuf->payload;
 
-        /* hide the fragment header for every succeding fragment */
+        /* hide the fragment header for every succeeding fragment */
         pbuf_header(iprh->next_pbuf, -IP6_FRAG_HLEN);
         pbuf_cat(ipr->p, iprh->next_pbuf);
       }
@@ -501,7 +501,7 @@ ip6_reass(struct pbuf *p)
     /* Set payload length in ip header. */
     ipr->iphdr->_plen = htons(ipr->datagram_len);
 
-    /* Get the furst pbuf. */
+    /* Get the first pbuf. */
     p = ipr->p;
 
     /* Restore Fragment Header in first pbuf. Mark as "single fragment"
@@ -545,7 +545,7 @@ nullreturn:
   return NULL;
 }
 
-#endif /* LWIP_IPV6 ^^ LWIP_IPV6_REASS */
+#endif /* LWIP_IPV6 && LWIP_IPV6_REASS */
 
 #if LWIP_IPV6 && LWIP_IPV6_FRAG
 

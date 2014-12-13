@@ -29,8 +29,8 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-#ifndef __LWIP_TCP_H__
-#define __LWIP_TCP_H__
+#ifndef LWIP_HDR_TCP_H
+#define LWIP_HDR_TCP_H
 
 #include "lwip/opt.h"
 
@@ -157,7 +157,7 @@ enum tcp_state {
    * @param pcb a new tcp_pcb that now is connected
    * @param err an error argument (TODO: that is current always ERR_OK?)
    * @return ERR_OK: accept the new connection,
-   *                 any other err_t abortsthe new connection
+   *                 any other err_t aborts the new connection
    */
 #define DEF_ACCEPT_CALLBACK  tcp_accept_fn accept;
 #else /* LWIP_CALLBACK_API */
@@ -351,7 +351,7 @@ void             tcp_err     (struct tcp_pcb *pcb, tcp_err_fn err);
 #define          tcp_sndbuf(pcb)          ((pcb)->snd_buf)
 #define          tcp_sndqueuelen(pcb)     ((pcb)->snd_queuelen)
 #define          tcp_nagle_disable(pcb)   ((pcb)->flags |= TF_NODELAY)
-#define          tcp_nagle_enable(pcb)    ((pcb)->flags &= ~TF_NODELAY)
+#define          tcp_nagle_enable(pcb)    ((pcb)->flags &= (tcpflags_t)~TF_NODELAY)
 #define          tcp_nagle_disabled(pcb)  (((pcb)->flags & TF_NODELAY) != 0)
 
 #if TCP_LISTEN_BACKLOG
@@ -414,4 +414,4 @@ struct tcp_pcb * tcp_listen_dual_with_backlog(struct tcp_pcb *pcb, u8_t backlog)
 
 #endif /* LWIP_TCP */
 
-#endif /* __LWIP_TCP_H__ */
+#endif /* LWIP_HDR_TCP_H */

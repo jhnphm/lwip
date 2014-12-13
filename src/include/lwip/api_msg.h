@@ -29,8 +29,8 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-#ifndef __LWIP_API_MSG_H__
-#define __LWIP_API_MSG_H__
+#ifndef LWIP_HDR_API_MSG_H
+#define LWIP_HDR_API_MSG_H
 
 #include "lwip/opt.h"
 
@@ -121,7 +121,17 @@ struct api_msg_msg {
     } lb;
 #endif /* TCP_LISTEN_BACKLOG */
   } msg;
+#if LWIP_NETCONN_SEM_PER_THREAD
+  sys_sem_t* op_completed_sem;
+#endif /* LWIP_NETCONN_SEM_PER_THREAD */
 };
+
+#if LWIP_NETCONN_SEM_PER_THREAD
+#define LWIP_API_MSG_SEM(msg)          ((msg)->op_completed_sem)
+#else /* LWIP_NETCONN_SEM_PER_THREAD */
+#define LWIP_API_MSG_SEM(msg)          (&(msg)->conn->op_completed)
+#endif /* LWIP_NETCONN_SEM_PER_THREAD */
+
 
 /** This struct contains a function to execute in another thread context and
     a struct api_msg_msg that serves as an argument for this function.
@@ -184,4 +194,4 @@ void netconn_free(struct netconn *conn);
 
 #endif /* LWIP_NETCONN */
 
-#endif /* __LWIP_API_MSG_H__ */
+#endif /* LWIP_HDR_API_MSG_H */

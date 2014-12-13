@@ -375,6 +375,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u16_t len, u8_t apiflags)
   err_t err;
   /* don't allocate segments bigger than half the maximum window we ever received */
   u16_t mss_local = LWIP_MIN(pcb->mss, pcb->snd_wnd_max/2);
+  mss_local = mss_local ? mss_local : pcb->mss;
 
 #if LWIP_NETIF_TX_SINGLE_PBUF
   /* Always copy to try to create single pbufs for TX */
@@ -744,8 +745,9 @@ tcp_enqueue_flags(struct tcp_pcb *pcb, u8_t flags)
   LWIP_ASSERT("tcp_enqueue_flags: need either TCP_SYN or TCP_FIN in flags (programmer violates API)",
               (flags & (TCP_SYN | TCP_FIN)) != 0);
 
-  /* check for configured max queuelen and possible overflow */
-  if ((pcb->snd_queuelen >= TCP_SND_QUEUELEN) || (pcb->snd_queuelen > TCP_SNDQUEUELEN_OVERFLOW)) {
+  /* check for configured max queuelen and possible overflow (FIN flag should always come through!) */
+  if (((pcb->snd_queuelen >= TCP_SND_QUEUELEN) || (pcb->snd_queuelen > TCP_SNDQUEUELEN_OVERFLOW)) &&
+      ((flags & TCP_FIN) == 0)) {
     LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 3, ("tcp_enqueue_flags: too long queue %"U16_F" (max %"U16_F")\n",
                                        pcb->snd_queuelen, TCP_SND_QUEUELEN));
     TCP_STATS_INC(tcp.memerr);

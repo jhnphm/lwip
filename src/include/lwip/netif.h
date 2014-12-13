@@ -29,8 +29,8 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-#ifndef __LWIP_NETIF_H__
-#define __LWIP_NETIF_H__
+#ifndef LWIP_HDR_NETIF_H
+#define LWIP_HDR_NETIF_H
 
 #include "lwip/opt.h"
 
@@ -60,9 +60,12 @@ extern "C" {
 /* Throughout this file, IP addresses are expected to be in
  * the same byte order as in IP_PCB. */
 
-/** must be the maximum of all used hardware address lengths
-    across all types of interfaces in use */
+/** Must be the maximum of all used hardware address lengths
+    across all types of interfaces in use.
+    This does not have to be changed, normally. */
+#ifndef NETIF_MAX_HWADDR_LEN
 #define NETIF_MAX_HWADDR_LEN 6U
+#endif
 
 /** Whether the network interface is 'up'. This is
  * a software flag used to control whether this network
@@ -384,4 +387,4 @@ void netif_create_ip6_linklocal_address(struct netif * netif, u8_t from_mac_48bi
 }
 #endif
 
-#endif /* __LWIP_NETIF_H__ */
+#endif /* LWIP_HDR_NETIF_H */

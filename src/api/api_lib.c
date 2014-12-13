@@ -86,12 +86,14 @@ netconn_new_with_proto_and_callback(enum netconn_type t, u8_t proto, netconn_cal
     API_MSG_VAR_FREE(msg);
     if (err != ERR_OK) {
       LWIP_ASSERT("freeing conn without freeing pcb", conn->pcb.tcp == NULL);
-      LWIP_ASSERT("conn has no op_completed", sys_sem_valid(&conn->op_completed));
       LWIP_ASSERT("conn has no recvmbox", sys_mbox_valid(&conn->recvmbox));
 #if LWIP_TCP
       LWIP_ASSERT("conn->acceptmbox shouldn't exist", !sys_mbox_valid(&conn->acceptmbox));
 #endif /* LWIP_TCP */
+#if !LWIP_NETCONN_SEM_PER_THREAD
+      LWIP_ASSERT("conn has no op_completed", sys_sem_valid(&conn->op_completed));
       sys_sem_free(&conn->op_completed);
+#endif /* !LWIP_NETCONN_SEM_PER_THREAD */
       sys_mbox_free(&conn->recvmbox);
       memp_free(MEMP_NETCONN, conn);
       return NULL;
@@ -245,8 +247,8 @@ netconn_connect(struct netconn *conn, ip_addr_t *addr, u16_t port)
 #endif /* (LWIP_UDP || LWIP_RAW) && LWIP_TCP */
 #if (LWIP_UDP || LWIP_RAW)
   {
-     /* UDP and RAW only set flags, so we can use core-locking. */
-     TCPIP_APIMSG(&API_MSG_VAR_REF(msg), lwip_netconn_do_connect, err);
+    /* UDP and RAW only set flags, so we can use core-locking. */
+    TCPIP_APIMSG(&API_MSG_VAR_REF(msg), lwip_netconn_do_connect, err);
   }
 #endif /* (LWIP_UDP || LWIP_RAW) */
   API_MSG_VAR_FREE(msg);
@@ -644,7 +646,7 @@ netconn_send(struct netconn *conn, struct netbuf *buf)
  * @param apiflags combination of following flags :
  * - NETCONN_COPY: data will be copied into memory belonging to the stack
  * - NETCONN_MORE: for TCP connection, PSH flag will be set on last segment sent
- * - NETCONN_DONTBLOCK: only write the data if all dat can be written at once
+ * - NETCONN_DONTBLOCK: only write the data if all data can be written at once
  * @param bytes_written pointer to a location that receives the number of written bytes
  * @return ERR_OK if data was sent, any other err_t on error
  */
@@ -708,7 +710,7 @@ netconn_write_partly(struct netconn *conn, const void *dataptr, size_t size,
 }
 
 /**
- * Close ot shutdown a TCP netconn (doesn't delete it).
+ * Close or shutdown a TCP netconn (doesn't delete it).
  *
  * @param conn the TCP netconn to close or shutdown
  * @param how fully close or only shutdown one side?
@@ -826,6 +828,11 @@ netconn_gethostbyname(const char *name, ip_addr_t *addr)
 
   LWIP_ERROR("netconn_gethostbyname: invalid name", (name != NULL), return ERR_ARG;);
   LWIP_ERROR("netconn_gethostbyname: invalid addr", (addr != NULL), return ERR_ARG;);
+#if LWIP_MPU_COMPATIBLE
+  if (strlen(name) >= DNS_MAX_NAME_LENGTH) {
+    return ERR_ARG;
+  }
+#endif
 
   API_VAR_ALLOC(struct dns_api_msg, MEMP_DNS_API_MSG, msg);
 #if LWIP_MPU_COMPATIBLE
@@ -856,5 +863,26 @@ netconn_gethostbyname(const char *name, ip_addr_t *addr)
   return err;
 }
 #endif /* LWIP_DNS*/
+
+#if LWIP_NETCONN_SEM_PER_THREAD
+void netconn_thread_init(void)
+{
+  sys_sem_t *sem = LWIP_NETCONN_THREAD_SEM_GET();
+  if (sem == SYS_SEM_NULL) {
+    /* call alloc only once */
+    LWIP_NETCONN_THREAD_SEM_ALLOC();
+    LWIP_ASSERT("LWIP_NETCONN_THREAD_SEM_ALLOC() failed", LWIP_NETCONN_THREAD_SEM_GET() != SYS_SEM_NULL);
+  }
+}
+
+void netconn_thread_cleanup(void)
+{
+  sys_sem_t *sem = LWIP_NETCONN_THREAD_SEM_GET();
+  if (sem == SYS_SEM_NULL) {
+    /* call free only once */
+    LWIP_NETCONN_THREAD_SEM_FREE();
+  }
+}
+#endif /* LWIP_NETCONN_SEM_PER_THREAD */
 
 #endif /* LWIP_NETCONN */

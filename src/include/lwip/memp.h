@@ -30,8 +30,8 @@
  *
  */
 
-#ifndef __LWIP_MEMP_H__
-#define __LWIP_MEMP_H__
+#ifndef LWIP_HDR_MEMP_H
+#define LWIP_HDR_MEMP_H
 
 #include "lwip/opt.h"
 
@@ -94,6 +94,9 @@ extern const u16_t memp_sizes[MEMP_MAX];
 struct memp_malloc_helper
 {
    memp_t poolnr;
+#if MEMP_OVERFLOW_CHECK
+   u16_t size;
+#endif /* MEMP_OVERFLOW_CHECK */
 };
 #endif /* MEM_USE_POOLS */
 
@@ -113,4 +116,4 @@ void  memp_free(memp_t type, void *mem);
 }
 #endif
 
-#endif /* __LWIP_MEMP_H__ */
+#endif /* LWIP_HDR_MEMP_H */

@@ -124,10 +124,10 @@ Steve Reynolds
 #endif
 PACK_STRUCT_BEGIN
 struct igmp_msg {
- PACK_STRUCT_FIELD(u8_t           igmp_msgtype);
- PACK_STRUCT_FIELD(u8_t           igmp_maxresp);
- PACK_STRUCT_FIELD(u16_t          igmp_checksum);
- PACK_STRUCT_FIELD(ip_addr_p_t    igmp_group_address);
+  PACK_STRUCT_FLD_8(u8_t        igmp_msgtype);
+  PACK_STRUCT_FLD_8(u8_t        igmp_maxresp);
+  PACK_STRUCT_FIELD(u16_t       igmp_checksum);
+  PACK_STRUCT_FLD_S(ip_addr_p_t igmp_group_address);
 } PACK_STRUCT_STRUCT;
 PACK_STRUCT_END
 #ifdef PACK_STRUCT_USE_INCLUDES
@@ -561,7 +561,7 @@ igmp_joingroup(ip_addr_t *ifaddr, ip_addr_t *groupaddr)
       } else {
         /* Return an error even if some network interfaces are joined */
         /** @todo undo any other netif already joined */
-        LWIP_DEBUGF(IGMP_DEBUG, ("igmp_joingroup: Not enought memory to join to group\n"));
+        LWIP_DEBUGF(IGMP_DEBUG, ("igmp_joingroup: Not enough memory to join to group\n"));
         return ERR_MEM;
       }
     }

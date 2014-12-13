@@ -29,8 +29,8 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-#ifndef __LWIP_STATS_H__
-#define __LWIP_STATS_H__
+#ifndef LWIP_HDR_STATS_H
+#define LWIP_HDR_STATS_H
 
 #include "lwip/opt.h"
 
@@ -91,10 +91,10 @@ struct stats_mem {
 #ifdef LWIP_DEBUG
   const char *name;
 #endif /* LWIP_DEBUG */
+  STAT_COUNTER err;
   mem_size_t avail;
   mem_size_t used;
   mem_size_t max;
-  STAT_COUNTER err;
   STAT_COUNTER illegal;
 };
 
@@ -344,4 +344,4 @@ void stats_display_sys(struct stats_sys *sys);
 }
 #endif
 
-#endif /* __LWIP_STATS_H__ */
+#endif /* LWIP_HDR_STATS_H */

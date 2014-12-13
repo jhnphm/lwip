@@ -29,8 +29,8 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-#ifndef __LWIP_TCPIP_H__
-#define __LWIP_TCPIP_H__
+#ifndef LWIP_HDR_TCPIP_H
+#define LWIP_HDR_TCPIP_H
 
 #include "lwip/opt.h"
 
@@ -38,6 +38,7 @@
 
 #include "lwip/api_msg.h"
 #include "lwip/netifapi.h"
+#include "lwip/pppapi.h"
 #include "lwip/pbuf.h"
 #include "lwip/api.h"
 #include "lwip/sys.h"
@@ -64,8 +65,14 @@ extern sys_mutex_t lock_tcpip_core;
 #else
 #define TCIP_APIMSG_SET_ERR(m, e)
 #endif
+#if LWIP_NETCONN_SEM_PER_THREAD
+#define TCPIP_APIMSG_SET_SEM(m) ((m)->msg.op_completed_sem = LWIP_NETCONN_THREAD_SEM_GET())
+#else
+#define TCPIP_APIMSG_SET_SEM(m)
+#endif
 #define TCPIP_APIMSG_NOERR(m,f) do { \
   TCIP_APIMSG_SET_ERR(m, ERR_VAL); \
+  TCPIP_APIMSG_SET_SEM(m); \
   LOCK_TCPIP_CORE(); \
   f(&((m)->msg)); \
   UNLOCK_TCPIP_CORE(); \
@@ -77,14 +84,18 @@ extern sys_mutex_t lock_tcpip_core;
 #define TCPIP_APIMSG_ACK(m)
 #define TCPIP_NETIFAPI(m)     tcpip_netifapi_lock(m)
 #define TCPIP_NETIFAPI_ACK(m)
+#define TCPIP_PPPAPI(m)       tcpip_pppapi_lock(m)
+#define TCPIP_PPPAPI_ACK(m)
 #else /* LWIP_TCPIP_CORE_LOCKING */
 #define LOCK_TCPIP_CORE()
 #define UNLOCK_TCPIP_CORE()
 #define TCPIP_APIMSG_NOERR(m,f) do { (m)->function = f; tcpip_apimsg(m); } while(0)
 #define TCPIP_APIMSG(m,f,e)   do { (m)->function = f; (e) = tcpip_apimsg(m); } while(0)
-#define TCPIP_APIMSG_ACK(m)   sys_sem_signal(&m->conn->op_completed)
+#define TCPIP_APIMSG_ACK(m)   sys_sem_signal(LWIP_API_MSG_SEM(m))
 #define TCPIP_NETIFAPI(m)     tcpip_netifapi(m)
 #define TCPIP_NETIFAPI_ACK(m) sys_sem_signal(&m->sem)
+#define TCPIP_PPPAPI(m)       tcpip_pppapi(m)
+#define TCPIP_PPPAPI_ACK(m)   sys_sem_signal(&m->sem)
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 
 
@@ -139,6 +150,13 @@ err_t tcpip_netifapi_lock(struct netifapi_msg *netifapimsg);
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 #endif /* LWIP_NETIF_API */
 
+#if LWIP_PPP_API
+err_t tcpip_pppapi(struct pppapi_msg *pppapimsg);
+#if LWIP_TCPIP_CORE_LOCKING
+err_t tcpip_pppapi_lock(struct pppapi_msg *pppapimsg);
+#endif /* LWIP_TCPIP_CORE_LOCKING */
+#endif /* LWIP_PPP_API */
+
 err_t tcpip_callback_with_block(tcpip_callback_fn function, void *ctx, u8_t block);
 #define tcpip_callback(f, ctx)              tcpip_callback_with_block(f, ctx, 1)
 
@@ -163,6 +181,9 @@ enum tcpip_msg_type {
 #if LWIP_NETIF_API
   TCPIP_MSG_NETIFAPI,
 #endif /* LWIP_NETIF_API */
+#if LWIP_PPP_API
+  TCPIP_MSG_PPPAPI,
+#endif /* LWIP_PPP_API */
 #if LWIP_TCPIP_TIMEOUT
   TCPIP_MSG_TIMEOUT,
   TCPIP_MSG_UNTIMEOUT,
@@ -181,6 +202,9 @@ struct tcpip_msg {
 #if LWIP_NETIF_API
     struct netifapi_msg *netifapimsg;
 #endif /* LWIP_NETIF_API */
+#if LWIP_PPP_API
+    struct pppapi_msg *pppapimsg;
+#endif /* LWIP_PPP_API */
     struct {
       struct pbuf *p;
       struct netif *netif;
@@ -205,4 +229,4 @@ struct tcpip_msg {
 
 #endif /* !NO_SYS */
 
-#endif /* __LWIP_TCPIP_H__ */
+#endif /* LWIP_HDR_TCPIP_H */
