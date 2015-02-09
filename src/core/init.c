@@ -60,7 +60,7 @@
 #include "lwip/nd6.h"
 #include "lwip/mld6.h"
 #include "lwip/api.h"
-#include "netif/ppp/ppp.h"
+#include "netif/ppp/ppp_impl.h"
 
 /* Compile-time sanity checks for configuration errors.
  * These can be done independently of LWIP_DEBUG, without penalty.
@@ -148,9 +148,6 @@
 #endif
 #if ((LWIP_SOCKET || LWIP_NETCONN) && (NO_SYS==1))
   #error "If you want to use Sequential API, you have to define NO_SYS=0 in your lwipopts.h"
-#endif
-#if (!LWIP_NETCONN && LWIP_SOCKET)
-  #error "If you want to use Socket API, you have to define LWIP_NETCONN=1 in your lwipopts.h"
 #endif
 #if (LWIP_PPP_API && (NO_SYS==1))
   #error "If you want to use PPP API, you have to define NO_SYS=0 in your lwipopts.h"
